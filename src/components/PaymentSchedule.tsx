@@ -30,9 +30,11 @@ export default function PaymentSchedule({
       try {
         const response = await customerApi.getPaymentSchedule(customerId, contractId);
         if (response.code === 200) {
-          setSchedules(response.data);
-          if (response.data.length > 0) {
-            setSelectedScheduleId(response.data[0].id);
+          // Sắp xếp theo số kỳ tăng dần (Kỳ 2, 3, 4, ...)
+          const sortedSchedules = response.data.sort((a, b) => a.termNo - b.termNo);
+          setSchedules(sortedSchedules);
+          if (sortedSchedules.length > 0) {
+            setSelectedScheduleId(sortedSchedules[0].id);
           }
         } else {
           setError(response.message || 'Không thể tải lịch thanh toán');
