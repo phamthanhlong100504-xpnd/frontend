@@ -25,12 +25,8 @@ export default function SearchCustomer({ onCustomerSelect }: SearchCustomerProps
     setCustomers([]);
 
     try {
-      let response;
-      if (searchType === 'name') {
-        response = await customerApi.searchByName(searchValue);
-      } else {
-        response = await customerApi.searchByCccd(searchValue);
-      }
+      const params = searchType === 'name' ? { name: searchValue } : { cccd: searchValue };
+      const response = await customerApi.search(params);
 
       if (response.code === 200) {
         setCustomers(response.data);
@@ -54,8 +50,12 @@ export default function SearchCustomer({ onCustomerSelect }: SearchCustomerProps
 
       <div className="search-form">
         <div className="form-group">
-          <label>Loại tìm kiếm:</label>
-          <select value={searchType} onChange={(e) => setSearchType(e.target.value as 'name' | 'cccd')}>
+          <label htmlFor="search-type-select">Loại tìm kiếm:</label>
+          <select
+            id="search-type-select"
+            value={searchType}
+            onChange={(e) => setSearchType(e.target.value as 'name' | 'cccd')}
+          >
             <option value="name">Tìm theo tên</option>
             <option value="cccd">Tìm theo CCCD</option>
           </select>

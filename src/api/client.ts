@@ -7,6 +7,7 @@ import type {
   LoanPaymentSchedule,
   PaymentRequest,
   OutstandingDebtStatisticsData,
+  OutstandingDebtStatisticsRequest,
   Supplier,
   CreateSupplierRequest,
   UpdateSupplierRequest,
@@ -14,34 +15,10 @@ import type {
   SupplierProduct,
 } from '../types';
 
-const USER_SERVICE_URL = 'http://localhost:8082/api/v1';
-const PAYMENT_SERVICE_URL = 'http://localhost:8080/api/v1';
-const STATISTICS_SERVICE_URL = 'http://localhost:8081/api/v1';
-const SUPPLIER_SERVICE_URL = 'http://localhost:8083/api/v1';
+const API_BASE_URL = 'http://localhost:8000/api/v1';
 
-const userServiceInstance: AxiosInstance = axios.create({
-  baseURL: USER_SERVICE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-const paymentServiceInstance: AxiosInstance = axios.create({
-  baseURL: PAYMENT_SERVICE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-const statisticsServiceInstance: AxiosInstance = axios.create({
-  baseURL: STATISTICS_SERVICE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-const supplierServiceInstance: AxiosInstance = axios.create({
-  baseURL: SUPPLIER_SERVICE_URL,
+const apiClient: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -60,22 +37,16 @@ const normalizeSupplier = (supplier: Supplier): Supplier => ({
 });
 
 export const customerApi = {
-  searchByName: (name: string): Promise<ApiResponse<Customer[]>> =>
-    userServiceInstance
-      .get('/customers/search', {
-      params: { name },
-      })
-      .then((res: AxiosResponse<ApiResponse<Customer[]>>) => res.data),
-
-  searchByCccd: (cccd: string): Promise<ApiResponse<Customer[]>> =>
-    userServiceInstance
-      .get('/customers/search-by-cccd', {
-      params: { cccd },
+  search: (params: { name?: string; cccd?: string }): Promise<ApiResponse<Customer[]>> =>
+    apiClient
+      .post('/customers/search', {
+        name: params.name ?? null,
+        cccd: params.cccd ?? null,
       })
       .then((res: AxiosResponse<ApiResponse<Customer[]>>) => res.data),
 
   getActiveContracts: (customerId: string): Promise<ApiResponse<Contract[]>> =>
-    paymentServiceInstance
+    apiClient
       .get(`/payments/${customerId}/contracts/active`)
       .then((res: AxiosResponse<ApiResponse<Contract[]>>) => res.data),
 
@@ -83,7 +54,7 @@ export const customerApi = {
     customerId: string,
     contractId: string
   ): Promise<ApiResponse<LoanPaymentSchedule[]>> =>
-    paymentServiceInstance
+    apiClient
       .get(`/payments/${customerId}/schedule/${contractId}`)
       .then((res: AxiosResponse<ApiResponse<LoanPaymentSchedule[]>>) => ({
         ...res.data,
@@ -94,7 +65,7 @@ export const customerApi = {
     customerId: string,
     request: PaymentRequest
   ): Promise<ApiResponse<LoanPaymentSchedule>> =>
-    paymentServiceInstance
+    apiClient
       .post(`/payments/${customerId}/contracts/payment`, request)
       .then((res: AxiosResponse<ApiResponse<LoanPaymentSchedule>>) => ({
         ...res.data,
@@ -103,73 +74,82 @@ export const customerApi = {
 };
 
 export const statisticsApi = {
-  getOutstandingDebtDetail: (): Promise<ApiResponse<OutstandingDebtStatisticsData>> =>
-    statisticsServiceInstance.post('/statistics/customer/outstanding-debt/detail', {
-      fromDate: null,
-      endDate: null,
-      minDebt: null,
-      maxDebt: null
-    })
+  getOutstandingDebt: (
+    params: OutstandingDebtStatisticsRequest
+  ): Promise<ApiResponse<OutstandingDebtStatisticsData>> =>
+    apiClient
+      .post('/statistics/customer/outstanding-debt/detail', {
+        fromDate: params.fromDate ?? null,
+        endDate: params.endDate ?? null,
+        minDebt: params.minDebt ?? null,
+        maxDebt: params.maxDebt ?? null,
+        customerId: params.customerId ?? null,
+      })
       .then((res: AxiosResponse<ApiResponse<OutstandingDebtStatisticsData>>) => res.data),
+
+  // Backward-compatible alias (component đang dùng tên này)
+  getOutstandingDebtDetail: (
+    params: OutstandingDebtStatisticsRequest = {}
+  ): Promise<ApiResponse<OutstandingDebtStatisticsData>> => statisticsApi.getOutstandingDebt(params),
 };
 
 export const supplierApi = {
-  createSupplier: (request: CreateSupplierRequest): Promise<ApiResponse<Supplier>> =>
-    supplierServiceInstance
-      .post('/suppliers', request)
-      .then((res: AxiosResponse<ApiResponse<Supplier>>) => ({
-        ...res.data,
-        data: normalizeSupplier(res.data.data),
-      })),
-
-  getSuppliers: (): Promise<ApiResponse<Supplier[]>> =>
-    supplierServiceInstance
+  getAll: (): Promise<ApiResponse<Supplier[]>> =>
+    apiClient
       .get('/suppliers')
       .then((res: AxiosResponse<ApiResponse<Supplier[]>>) => ({
         ...res.data,
         data: res.data.data.map(normalizeSupplier),
       })),
 
-  updateSupplier: (
-    supplierId: string,
-    request: UpdateSupplierRequest
-  ): Promise<ApiResponse<Supplier>> =>
-    supplierServiceInstance
-      .put(`/suppliers/${supplierId}`, {
-        ...request,
-        status: request.status || 'ACTIVE',
-      })
-      .then((res: AxiosResponse<ApiResponse<Supplier>>) => ({
-        ...res.data,
-        data: normalizeSupplier({
-          ...res.data.data,
-          status: request.status,
-        }),
-      })),
+  // Backward-compatible aliases
+  getSuppliers: (): Promise<ApiResponse<Supplier[]>> => supplierApi.getAll(),
 
-  deleteSupplier: (supplierId: string): Promise<ApiResponse<null>> =>
-    supplierServiceInstance
-      .delete(`/suppliers/${supplierId}`)
+  create: (data: CreateSupplierRequest): Promise<ApiResponse<Supplier>> =>
+    apiClient
+      .post('/suppliers', data)
+      .then((res: AxiosResponse<ApiResponse<Supplier>>) => res.data),
+
+  createSupplier: (data: CreateSupplierRequest): Promise<ApiResponse<Supplier>> => supplierApi.create(data),
+
+  update: (id: string, data: UpdateSupplierRequest): Promise<ApiResponse<Supplier>> =>
+    apiClient
+      .put(`/suppliers/${id}`, data)
+      .then((res: AxiosResponse<ApiResponse<Supplier>>) => res.data),
+
+  updateSupplier: (id: string, data: UpdateSupplierRequest): Promise<ApiResponse<Supplier>> =>
+    supplierApi.update(id, data),
+
+  delete: (id: string): Promise<ApiResponse<null>> =>
+    apiClient
+      .delete(`/suppliers/${id}`)
       .then((res: AxiosResponse<ApiResponse<null>>) => res.data),
 
-  getSupplierProducts: (supplierId: string): Promise<ApiResponse<SupplierProduct[]>> =>
-    supplierServiceInstance
+  deleteSupplier: (id: string): Promise<ApiResponse<null>> => supplierApi.delete(id),
+
+  // Import orders by supplier name (per backend)
+  getPendingImportOrders: (name: string): Promise<ApiResponse<ImportOrder[]>> =>
+    apiClient
+      .get('/import-orders/pending', { params: { name } })
+      .then((res: AxiosResponse<ApiResponse<ImportOrder[]>>) => res.data),
+
+  getCompletedImportOrders: (name: string): Promise<ApiResponse<ImportOrder[]>> =>
+    apiClient
+      .get('/import-orders/completed', { params: { name } })
+      .then((res: AxiosResponse<ApiResponse<ImportOrder[]>>) => res.data),
+
+  // Legacy endpoint (keep in case BE still supports it)
+  getImportOrders: (supplierId: string): Promise<ApiResponse<ImportOrder[]>> =>
+    apiClient
+      .get(`/suppliers/${supplierId}/import-orders`)
+      .then((res: AxiosResponse<ApiResponse<ImportOrder[]>>) => res.data),
+
+  getProducts: (supplierId: string): Promise<ApiResponse<SupplierProduct[]>> =>
+    apiClient
       .get(`/suppliers/${supplierId}/products`)
       .then((res: AxiosResponse<ApiResponse<SupplierProduct[]>>) => res.data),
 
-  getPendingImportOrders: (supplierName: string): Promise<ApiResponse<ImportOrder[]>> =>
-    supplierServiceInstance
-      .get('/import-orders/pending', {
-        params: { name: supplierName },
-      })
-      .then((res: AxiosResponse<ApiResponse<ImportOrder[]>>) => res.data),
-
-  getCompletedImportOrders: (supplierName: string): Promise<ApiResponse<ImportOrder[]>> =>
-    supplierServiceInstance
-      .get('/import-orders/completed', {
-        params: { name: supplierName },
-      })
-      .then((res: AxiosResponse<ApiResponse<ImportOrder[]>>) => res.data),
+  getSupplierProducts: (supplierId: string): Promise<ApiResponse<SupplierProduct[]>> =>
+    supplierApi.getProducts(supplierId),
 };
 
-export default paymentServiceInstance;

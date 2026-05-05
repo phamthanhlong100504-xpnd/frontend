@@ -52,7 +52,7 @@ export default function SupplierManagement() {
     setError('');
 
     try {
-      const response = await supplierApi.getSuppliers();
+      const response = await supplierApi.getAll();
       if (response.code !== 200) {
         setError(response.message || 'Không thể tải danh sách nhà cung cấp');
         return;
@@ -84,7 +84,7 @@ export default function SupplierManagement() {
 
     try {
       const [productsRes, pendingRes, completedRes] = await Promise.all([
-        supplierApi.getSupplierProducts(supplier.id),
+        supplierApi.getProducts(supplier.id),
         supplierApi.getPendingImportOrders(supplier.name),
         supplierApi.getCompletedImportOrders(supplier.name),
       ]);
@@ -96,19 +96,13 @@ export default function SupplierManagement() {
       }
 
       if (pendingRes.code === 200) {
-        setPendingOrders(
-          pendingRes.data.filter((order) => order.supplierId === supplier.id || order.supplierName === supplier.name)
-        );
+        setPendingOrders(pendingRes.data);
       } else {
         setPendingOrders([]);
       }
 
       if (completedRes.code === 200) {
-        setCompletedOrders(
-          completedRes.data.filter(
-            (order) => order.supplierId === supplier.id || order.supplierName === supplier.name
-          )
-        );
+        setCompletedOrders(completedRes.data);
       } else {
         setCompletedOrders([]);
       }
@@ -182,7 +176,7 @@ export default function SupplierManagement() {
     setSuccess('');
 
     try {
-      const response = await supplierApi.createSupplier({
+      const response = await supplierApi.create({
         name: createFormData.name.trim(),
         email: createFormData.email.trim(),
         phone: createFormData.phone.trim(),
@@ -218,7 +212,7 @@ export default function SupplierManagement() {
     setSuccess('');
 
     try {
-      const response = await supplierApi.updateSupplier(selectedSupplier.id, {
+      const response = await supplierApi.update(selectedSupplier.id, {
         ...formData,
         status: formData.status || 'ACTIVE',
       });
@@ -245,7 +239,7 @@ export default function SupplierManagement() {
     setSuccess('');
 
     try {
-      const response = await supplierApi.deleteSupplier(selectedSupplier.id);
+      const response = await supplierApi.delete(selectedSupplier.id);
       if (response.code === 200) {
         setSuccess('Đã xóa mềm nhà cung cấp. Bạn có thể khôi phục bằng status ACTIVE.');
         await loadSuppliers();
@@ -268,7 +262,7 @@ export default function SupplierManagement() {
     setSuccess('');
 
     try {
-      const response = await supplierApi.updateSupplier(selectedSupplier.id, {
+      const response = await supplierApi.update(selectedSupplier.id, {
         ...formData,
         status: 'ACTIVE',
       });

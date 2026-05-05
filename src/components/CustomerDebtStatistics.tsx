@@ -37,7 +37,12 @@ export default function CustomerDebtStatistics() {
       setError('');
 
       try {
-        const response = await statisticsApi.getOutstandingDebtDetail();
+        const response = await statisticsApi.getOutstandingDebtDetail({
+          fromDate: null,
+          endDate: null,
+          minDebt: null,
+          maxDebt: null,
+        });
         if (response.code === 200) {
           setItems(response.data.customerStatistics || []);
           setFilteredItems(response.data.customerStatistics || []);
@@ -118,8 +123,9 @@ export default function CustomerDebtStatistics() {
       {/* Search Filters */}
       <div className="debt-filter-section">
         <div className="filter-group">
-          <label>Tổng dư nợ từ (VNĐ):</label>
+          <label htmlFor="minDebt">Tổng dư nợ từ (VNĐ):</label>
           <input
+            id="minDebt"
             type="number"
             value={minDebt}
             onChange={(e) => setMinDebt(e.target.value)}
@@ -128,8 +134,9 @@ export default function CustomerDebtStatistics() {
         </div>
 
         <div className="filter-group">
-          <label>Tổng dư nợ đến (VNĐ):</label>
+          <label htmlFor="maxDebt">Tổng dư nợ đến (VNĐ):</label>
           <input
+            id="maxDebt"
             type="number"
             value={maxDebt}
             onChange={(e) => setMaxDebt(e.target.value)}
@@ -138,8 +145,9 @@ export default function CustomerDebtStatistics() {
         </div>
 
         <div className="filter-group">
-          <label>Từ ngày:</label>
+          <label htmlFor="fromDate">Từ ngày:</label>
           <input
+            id="fromDate"
             type="date"
             value={fromDate}
             onChange={(e) => setFromDate(e.target.value)}
@@ -147,8 +155,9 @@ export default function CustomerDebtStatistics() {
         </div>
 
         <div className="filter-group">
-          <label>Đến ngày:</label>
+          <label htmlFor="toDate">Đến ngày:</label>
           <input
+            id="toDate"
             type="date"
             value={toDate}
             onChange={(e) => setToDate(e.target.value)}

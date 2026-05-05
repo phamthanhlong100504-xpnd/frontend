@@ -89,6 +89,15 @@ export interface PaymentRequest {
   amount: number;
 }
 
+export interface OutstandingDebtStatisticsRequest {
+  // Backend thường cho phép null/empty để lấy toàn bộ dữ liệu.
+  fromDate?: string | null;
+  endDate?: string | null;
+  minDebt?: number | null;
+  maxDebt?: number | null;
+  customerId?: string | null;
+}
+
 export interface DebtStatisticSchedule {
   termNo: number;
   dueDate: string;
