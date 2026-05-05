@@ -11,6 +11,7 @@ export default function CustomerDebtStatistics() {
   const [expandedContract, setExpandedContract] = useState<string | null>(null);
 
   // Search filters
+  const [customerName, setCustomerName] = useState('');
   const [minDebt, setMinDebt] = useState('');
   const [maxDebt, setMaxDebt] = useState('');
   const [fromDate, setFromDate] = useState('');
@@ -64,6 +65,13 @@ export default function CustomerDebtStatistics() {
   const handleFilter = () => {
     let filtered = items;
 
+    // Filter by customer name
+    if (customerName) {
+      filtered = filtered.filter(item => 
+        item.customerName.toLowerCase().includes(customerName.toLowerCase())
+      );
+    }
+
     // Filter by min debt
     if (minDebt) {
       filtered = filtered.filter(item => item.totalDebt >= parseFloat(minDebt));
@@ -101,6 +109,7 @@ export default function CustomerDebtStatistics() {
 
   // Clear filters
   const handleClearFilters = () => {
+    setCustomerName('');
     setMinDebt('');
     setMaxDebt('');
     setFromDate('');
@@ -122,6 +131,17 @@ export default function CustomerDebtStatistics() {
 
       {/* Search Filters */}
       <div className="debt-filter-section">
+        <div className="filter-group">
+          <label htmlFor="customerName">Tên khách hàng:</label>
+          <input
+            id="customerName"
+            type="text"
+            value={customerName}
+            onChange={(e) => setCustomerName(e.target.value)}
+            placeholder="Nhập tên khách hàng"
+          />
+        </div>
+
         <div className="filter-group">
           <label htmlFor="minDebt">Tổng dư nợ từ (VNĐ):</label>
           <input
