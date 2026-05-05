@@ -82,25 +82,30 @@ export default function CustomerDebtStatistics() {
       filtered = filtered.filter(item => item.totalDebt <= parseFloat(maxDebt));
     }
 
-    // Filter by date range
+    // Filter by date range - filter contracts instead of removing customers
     if (fromDate || toDate) {
-      filtered = filtered.filter(item => {
-        // Get earliest contract sign date
-        const earliestContractDate = item.contracts.length > 0
-          ? new Date(Math.min(...item.contracts.map(c => new Date(c.signDate).getTime())))
-          : new Date();
+      filtered = filtered.map(item => {
+        const filteredContracts = item.contracts.filter(contract => {
+          const contractDate = new Date(contract.signDate);
 
-        if (fromDate) {
-          const from = new Date(fromDate);
-          if (earliestContractDate < from) return false;
-        }
+          if (fromDate) {
+            const from = new Date(fromDate);
+            if (contractDate < from) return false;
+          }
 
-        if (toDate) {
-          const to = new Date(toDate);
-          if (earliestContractDate > to) return false;
-        }
+          if (toDate) {
+            const to = new Date(toDate);
+            to.setHours(23, 59, 59, 999);
+            if (contractDate > to) return false;
+          }
 
-        return true;
+          return true;
+        });
+
+        return {
+          ...item,
+          contracts: filteredContracts,
+        };
       });
     }
 
