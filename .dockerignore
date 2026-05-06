@@ -1,0 +1,11 @@
+node_modules
+dist
+.git
+.gitignore
+*.md
+api.text
+api_statistic.txt
+api_supplier.txt
+script-create-db
+script-data
+.kilo
